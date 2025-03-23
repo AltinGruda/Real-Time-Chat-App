@@ -1,94 +1,158 @@
 # Real-Time Chat Application
 
-A modern real-time chat application built with Node.js, Socket.io, Redis, and React.js.
+A feature-rich real-time chat application built with Node.js, Express, Socket.IO, and Redis. The application supports both group chat rooms and private messaging, with additional features like video calls and message persistence options.
 
 ## Features
 
-- Real-time messaging with Socket.io
-- Multiple chat rooms
-- User presence indicators
-- Typing indicators
-- Message history with Redis
-- Modern, responsive UI
-- User authentication (username-based)
+### Chat Functionality
+- **Group Chat Rooms**
+  - Join/leave chat rooms
+  - Real-time messaging in rooms
+  - View room participants
+  - Message history for rooms
+  - Typing indicators
 
-## Prerequisites
+- **Private Messaging**
+  - One-on-one private conversations
+  - Message persistence options (temporary or permanent)
+  - Private typing indicators
+  - Customizable storage preferences
 
-- Node.js (v14 or higher)
-- Redis server
-- npm or yarn
+### Video Calls
+- One-on-one video calls using WebRTC
+- Call accept/reject functionality
+- Call end functionality
+
+### Data Persistence
+- Redis-based message storage
+- Configurable message retention
+- User preferences storage
+- Support for both temporary and permanent message storage
 
 ## Project Structure
 
+### Backend
 ```
-.
-├── client/               # React frontend
-│   └── vite-project/
-│       ├── src/
-│       │   ├── components/
-│       │   │   ├── Chat.jsx
-│       │   │   └── Login.jsx
-│       │   ├── App.jsx
-│       │   └── main.jsx
-│       └── package.json
-└── server/              # Node.js backend
-    ├── src/
-    │   └── index.js
-    └── package.json
+src/
+├── config/
+│   ├── environment.js   # Environment configuration
+│   └── redis.js        # Redis client setup
+├── services/
+│   ├── messageService.js # Message handling and storage
+│   ├── roomService.js   # Room management
+│   └── userService.js   # User management and preferences
+├── sockets/
+│   ├── handlers/
+│   │   ├── chatHandler.js  # Chat event handlers
+│   │   ├── callHandler.js  # Video call handlers
+│   │   └── roomHandler.js  # Room event handlers
+│   └── socketManager.js    # Socket.IO initialization
+├── utils/
+│   └── chatUtils.js    # Utility functions
+└── server.js           # Main application entry
 ```
 
-## Installation
+### Frontend
+```
+client/
+├── src/
+│   ├── components/
+│   │   ├── Chat/
+│   │   │   ├── ChatInput.jsx       # Message input component
+│   │   │   ├── ChatMessages.jsx    # Messages display
+│   │   │   └── ChatRoom.jsx        # Main chat component
+│   │   ├── VideoCall/
+│   │   │   ├── CallControls.jsx    # Call control buttons
+│   │   │   └── VideoChat.jsx       # Video call component
+│   │   └── Common/
+│   │       ├── UserList.jsx        # Online users list
+│   │       └── Header.jsx          # App header
+│   ├── hooks/
+│   │   ├── useSocket.js            # Socket.IO hooks
+│   │   └── useVideoCall.js         # WebRTC hooks
+│   ├── context/
+│   │   ├── SocketContext.jsx       # Socket context
+│   │   └── UserContext.jsx         # User context
+│   ├── utils/
+│   │   └── chatUtils.js            # Utility functions
+│   ├── App.jsx                     # Main app component
+│   └── main.jsx                    # Entry point
+├── public/
+│   └── assets/                     # Static assets
+└── index.html                      # HTML template
+```
 
-1. Clone the repository
-2. Install dependencies:
+## Setup
 
+### Backend Setup
+1. Install dependencies:
 ```bash
-# Install server dependencies
 cd server
 npm install
+```
 
-# Install client dependencies
-cd ../client/vite-project
+2. Create a `.env` file in the root directory with the following variables:
+```env
+- `PORT`: Server port (default: 3000)
+- `REDIS_HOST`: Redis server host (default: localhost)
+- `REDIS_PORT`: Redis server port (default: 6379)
+- `CLIENT_URL`: Client application URL (default: http://localhost:5173)
+
+```
+
+3. Start Redis server
+
+4. Start the backend:
+```bash
+npm start
+```
+
+### Frontend Setup
+1. Install dependencies:
+```bash
+cd client
 npm install
 ```
 
-3. Make sure Redis server is running on your machine
-
-## Running the Application
-
-1. Start the server:
+2. Start the frontend development server:
 ```bash
-cd server
-npm run dev
-```
-
-2. Start the client:
-```bash
-cd client/vite-project
 npm run dev
 ```
 
 3. Open your browser and navigate to `http://localhost:5173`
 
-## Environment Variables
+## WebSocket Events
 
-### Server
-Create a `.env` file in the server directory with the following variables:
-```
-PORT=3000
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
+### Room Events
+- `join`: Join a chat room
+- `disconnect`: Handle user disconnection
 
-### Client
-The client uses the following default values:
-- Server URL: `http://localhost:3000`
+### Chat Events
+- `chatMessage`: Send message to room
+- `private-message`: Send private message
+- `typing`: Broadcast typing status
+- `private-typing`: Send private typing status
 
-## Usage
+### Call Events
+- `call-user`: Initiate video call
+- `answer-call`: Accept incoming call
+- `end-call`: End active call
+- `reject-call`: Reject incoming call
 
-1. Enter your username and a room name
-2. Start chatting!
-3. You can create new rooms by entering a new room name
-4. See who's online in the current room
-5. See when others are typing
-6. View message history when joining a room 
+### Storage Events
+- `set-storage-preference`: Set message storage preference
+- `get-storage-preference`: Get current storage preference
+
+## Data Storage
+
+### Redis Data Structure
+- Room messages: `messages:{roomId}`
+- Temporary private chats: `temp_chat:{user1Id}:{user2Id}`
+- Permanent private chats: `permanent_chat:{username1}:{username2}`
+- User preferences: `storage_preferences`
+
+
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details 
