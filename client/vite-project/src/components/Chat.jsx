@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { IoCall, IoVideocam, IoExitOutline, IoSend } from 'react-icons/io5';
+import { IoSend, IoExitOutline } from 'react-icons/io5';
 import './Chat.css';
+import PrivateChat from './PrivateChat';
 
 const Chat = ({ socket, username, room, onLogout }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [typing, setTyping] = useState('');
+  const [privateChat, setPrivateChat] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -71,6 +73,12 @@ const Chat = ({ socket, username, room, onLogout }) => {
     }, 1000);
   };
 
+  const handleUserClick = (user) => {
+    if (user.username !== username) {
+      setPrivateChat(user);
+    }
+  };
+
   return (
     <div className="app-container">
       <div className="sidebar">
@@ -83,7 +91,11 @@ const Chat = ({ socket, username, room, onLogout }) => {
           <h3>Members</h3>
           <ul>
             {users.map((user) => (
-              <li key={user.id}>
+              <li 
+                key={user.id}
+                onClick={() => handleUserClick(user)}
+                className={user.username !== username ? 'clickable' : ''}
+              >
                 <div className="user-avatar-container">
                   <div className="user-avatar">
                     {user.username[0].toUpperCase()}
@@ -103,60 +115,64 @@ const Chat = ({ socket, username, room, onLogout }) => {
       </div>
 
       <div className="main-content">
-        <div className="chat-header">
-          <div className="header-actions">
-            <button className="icon-button">
-              <IoCall size={20} />
-            </button>
-            <button className="icon-button">
-              <IoVideocam size={20} />
-            </button>
-          </div>
-          <button onClick={onLogout} className="leave-button">
-            <IoExitOutline size={20} />
-            <span>Leave Room</span>
-          </button>
-        </div>
-
-        <div className="chat-messages">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`message ${msg.user === username ? 'sent' : 'received'}`}
-            >
-              <div>
-                {msg.type === 'info' ? (
-                  <em>{msg.content}</em>
-                ) : (
-                  <>
-                    <strong>{msg.user === username ? 'You' : msg.user}</strong>
-                    <span className="timestamp">
-                      {format(new Date(msg.timestamp), 'HH:mm')}
-                    </span>
-                  </>
-                )}
-              </div>
-              {msg.type !== 'info' && <div>{msg.content}</div>}
+        {privateChat ? (
+          <PrivateChat
+            socket={socket}
+            username={username}
+            otherUser={privateChat}
+            onClose={() => setPrivateChat(null)}
+          />
+        ) : (
+          <>
+            <div className="chat-header">
+              <h2>{room}</h2>
+              <button onClick={onLogout} className="leave-button">
+                <IoExitOutline size={20} />
+                <span>Leave Room</span>
+              </button>
             </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
 
-        {typing && <div className="typing-indicator">{typing}</div>}
+            <div className="chat-messages">
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`message ${msg.user === username ? 'sent' : 'received'}`}
+                >
+                  <div>
+                    {msg.type === 'info' ? (
+                      <em>{msg.content}</em>
+                    ) : (
+                      <>
+                        <strong>{msg.user === username ? 'You' : msg.user}</strong>
+                        <span className="timestamp">
+                          {format(new Date(msg.timestamp), 'HH:mm')}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {msg.type !== 'info' && <div>{msg.content}</div>}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
 
-        <form className="message-input" onSubmit={handleSendMessage}>
-          <div className="input-container">
-            <input
-              type="text"
-              value={message}
-              onChange={handleTyping}
-              placeholder="Type a message..."
-            />
-            <button type="submit">
-              <IoSend size={20} />
-            </button>
-          </div>
-        </form>
+            {typing && <div className="typing-indicator">{typing}</div>}
+
+            <form className="message-input" onSubmit={handleSendMessage}>
+              <div className="input-container">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={handleTyping}
+                  placeholder="Type a message..."
+                />
+                <button type="submit">
+                  <IoSend size={20} />
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

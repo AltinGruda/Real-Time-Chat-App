@@ -35,6 +35,11 @@ app.use(express.json());
 const users = new Map();
 const rooms = new Map();
 
+// Helper function to get private chat ID
+const getPrivateChatId = (user1Id, user2Id) => {
+  return [user1Id, user2Id].sort().join(':');
+};
+
 // Socket.io connection handler
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -108,6 +113,93 @@ io.on('connection', (socket) => {
     if (!user) return;
 
     socket.to(user.room).emit('userTyping', {
+      username: user.username,
+      isTyping,
+    });
+  });
+
+  // Handle WebRTC signaling
+  socket.on('call-user', ({ userToCall, signalData }) => {
+    const caller = users.get(socket.id);
+    if (!caller) return;
+
+    console.log(`Call request from ${caller.username} to user ID: ${userToCall}`);
+    
+    // Send the call to the specific user
+    io.to(userToCall).emit('incoming-call', {
+      signal: signalData,
+      from: socket.id,
+      callerName: caller.username
+    });
+  });
+
+  socket.on('answer-call', ({ to, signal }) => {
+    const answerer = users.get(socket.id);
+    if (!answerer) return;
+
+    console.log(`Call answered by ${answerer.username} to user ID: ${to}`);
+    io.to(to).emit('call-accepted', signal);
+  });
+
+  socket.on('end-call', ({ to }) => {
+    const caller = users.get(socket.id);
+    if (!caller) return;
+
+    console.log(`Call ended by ${caller.username} to user ID: ${to}`);
+    io.to(to).emit('call-ended');
+  });
+
+  socket.on('reject-call', ({ to }) => {
+    const rejector = users.get(socket.id);
+    if (!rejector) return;
+
+    console.log(`Call rejected by ${rejector.username} to user ID: ${to}`);
+    io.to(to).emit('call-rejected');
+  });
+
+  // Handle private messages
+  socket.on('private-message', async ({ to, content }) => {
+    const sender = users.get(socket.id);
+    if (!sender) return;
+
+    const messageData = {
+      from: sender.username,
+      to: users.get(to)?.username,
+      content,
+      timestamp: new Date(),
+    };
+
+    // Store message in Redis
+    const chatId = getPrivateChatId(socket.id, to);
+    await redis.lpush(
+      `private:${chatId}`,
+      JSON.stringify(messageData)
+    );
+    await redis.ltrim(`private:${chatId}`, 0, 99); // Keep last 100 messages
+
+    // Send to both users
+    io.to(to).emit('private-message', messageData);
+    socket.emit('private-message', messageData);
+  });
+
+  // Handle private message history request
+  socket.on('get-private-history', async ({ otherUserId }) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+
+    const chatId = getPrivateChatId(socket.id, otherUserId);
+    const messages = await redis.lrange(`private:${chatId}`, 0, 49);
+    const parsedMessages = messages.map(msg => JSON.parse(msg));
+    
+    socket.emit('private-message-history', parsedMessages.reverse());
+  });
+
+  // Handle private typing status
+  socket.on('private-typing', ({ to, isTyping }) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+
+    io.to(to).emit('private-typing', {
       username: user.username,
       isTyping,
     });
