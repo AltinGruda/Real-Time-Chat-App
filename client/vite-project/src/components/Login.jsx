@@ -29,6 +29,7 @@ const Login = ({ onLogin }) => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Enter your username"
+            style={{ width: '100%' }}
           />
         </div>
 
@@ -40,6 +41,7 @@ const Login = ({ onLogin }) => {
             value={room}
             onChange={(e) => setRoom(e.target.value)}
             placeholder="Enter room name"
+            style={{ width: '100%' }}
           />
         </div>
 
