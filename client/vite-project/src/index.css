@@ -64,13 +64,11 @@ body {
 }
 
 .message.sent {
-  background-color: var(--accent-color);
   color: var(--primary-color);
   margin-left: auto;
 }
 
 .message.received {
-  background-color: var(--secondary-color);
   margin-right: auto;
 }
 

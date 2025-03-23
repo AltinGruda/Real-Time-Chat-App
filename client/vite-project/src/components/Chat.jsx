@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { IoCall, IoVideocam, IoSettings, IoExitOutline } from 'react-icons/io5';
+import { IoCall, IoVideocam, IoExitOutline, IoSend } from 'react-icons/io5';
+import './Chat.css';
 
 const Chat = ({ socket, username, room, onLogout }) => {
   const [message, setMessage] = useState('');
@@ -73,80 +74,26 @@ const Chat = ({ socket, username, room, onLogout }) => {
   return (
     <div className="app-container">
       <div className="sidebar">
-        <div className="sidebar-header" style={{ 
-          padding: '1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <h2 style={{ 
-            fontSize: '1.25rem', 
-            fontWeight: '600',
-            marginBottom: '0.5rem'
-          }}>
-            {room}
-          </h2>
-          <p style={{ 
-            color: 'var(--text-secondary)',
-            fontSize: '0.875rem',
-            opacity: 0.7 
-          }}>
-            {users.length} members
-          </p>
+        <div className="sidebar-header">
+          <h2>{room}</h2>
+          <p>{users.length} members</p>
         </div>
         
         <div className="user-list">
-          <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Members</h3>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+          <h3>Members</h3>
+          <ul>
             {users.map((user) => (
-              <li
-                key={user.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  marginBottom: '0.75rem',
-                  padding: '0.5rem',
-                  borderRadius: '8px',
-                }}
-              >
-                <div style={{ 
-                  position: 'relative',
-                }}>
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      backgroundColor: '#2c2c2c',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+              <li key={user.id}>
+                <div className="user-avatar-container">
+                  <div className="user-avatar">
                     {user.username[0].toUpperCase()}
                   </div>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '-2px',
-                      right: '-2px',
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      backgroundColor: '#22c55e', // green color for active status
-                      border: '2px solid #1a1a1a', // border color matching background
-                      boxSizing: 'content-box'
-                    }}
-                  />
+                  <div className="user-status" />
                 </div>
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <div className="user-info">
                   <span>{user.username}</span>
                   {user.username === username && (
-                    <span style={{ 
-                      color: 'var(--text-secondary)',
-                      opacity: 0.7 
-                    }}>
-                      (you)
-                    </span>
+                    <span className="user-you">(you)</span>
                   )}
                 </div>
               </li>
@@ -156,61 +103,16 @@ const Chat = ({ socket, username, room, onLogout }) => {
       </div>
 
       <div className="main-content">
-        <div className="chat-header" style={{ 
-          padding: '1rem 1.5rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <button className="icon-button" style={{ 
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              padding: '0.5rem',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'background-color 0.2s'
-            }}>
+        <div className="chat-header">
+          <div className="header-actions">
+            <button className="icon-button">
               <IoCall size={20} />
             </button>
-            <button className="icon-button" style={{ 
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: 'none',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              padding: '0.5rem',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'background-color 0.2s'
-            }}>
+            <button className="icon-button">
               <IoVideocam size={20} />
             </button>
           </div>
-          <button
-            onClick={onLogout}
-            className="leave-button"
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              color: '#ff4d4d',
-              cursor: 'pointer',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.9rem',
-              transition: 'background-color 0.2s',
-              ':hover': {
-                backgroundColor: 'rgba(255, 77, 77, 0.1)'
-              }
-            }}
-          >
+          <button onClick={onLogout} className="leave-button">
             <IoExitOutline size={20} />
             <span>Leave Room</span>
           </button>
@@ -220,17 +122,15 @@ const Chat = ({ socket, username, room, onLogout }) => {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`message ${
-                msg.user === username ? 'sent' : 'received'
-              }`}
+              className={`message ${msg.user === username ? 'sent' : 'received'}`}
             >
-              <div style={{ marginBottom: '0.25rem' }}>
+              <div>
                 {msg.type === 'info' ? (
                   <em>{msg.content}</em>
                 ) : (
                   <>
                     <strong>{msg.user === username ? 'You' : msg.user}</strong>
-                    <span style={{ marginLeft: '0.5rem', fontSize: '0.8em', color: 'var(--text-secondary)' }}>
+                    <span className="timestamp">
                       {format(new Date(msg.timestamp), 'HH:mm')}
                     </span>
                   </>
@@ -252,7 +152,9 @@ const Chat = ({ socket, username, room, onLogout }) => {
               onChange={handleTyping}
               placeholder="Type a message..."
             />
-            <button type="submit">Send</button>
+            <button type="submit">
+              <IoSend size={20} />
+            </button>
           </div>
         </form>
       </div>
