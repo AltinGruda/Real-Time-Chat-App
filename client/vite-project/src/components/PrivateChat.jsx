@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { IoCall, IoExitOutline, IoSend, IoClose } from 'react-icons/io5';
+import { IoCall, IoExitOutline, IoSend, IoClose, IoCloudOutline, IoCloudOfflineOutline } from 'react-icons/io5';
 import './PrivateChat.css';
 import AudioCall from './AudioCall';
 
@@ -8,6 +8,7 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState('');
+  const [isPermanentStorage, setIsPermanentStorage] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -23,6 +24,14 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
   };
 
   useEffect(() => {
+    // Get storage preference when component mounts
+    socket.emit('get-storage-preference');
+
+    // Listen for storage preference
+    socket.on('storage-preference', ({ isPermanent }) => {
+      setIsPermanentStorage(isPermanent);
+    });
+
     // Listen for private messages
     socket.on('private-message', (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
@@ -49,6 +58,7 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
       socket.off('private-message');
       socket.off('private-message-history');
       socket.off('private-typing');
+      socket.off('storage-preference');
     };
   }, [socket, otherUser]);
 
@@ -92,6 +102,12 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit('private-typing', { to: otherUser.id, isTyping: false });
     }, 1000);
+  };
+
+  const handleStorageToggle = () => {
+    const newValue = !isPermanentStorage;
+    setIsPermanentStorage(newValue);
+    socket.emit('set-storage-preference', { isPermanent: newValue });
   };
 
   const handleCallClick = () => {
@@ -155,6 +171,13 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
           <h2>{otherUser.username}</h2>
         </div>
         <div className="header-actions">
+          <button 
+            className={`icon-button ${isPermanentStorage ? 'active' : ''}`}
+            onClick={handleStorageToggle}
+            title={isPermanentStorage ? 'Permanent Storage Enabled' : 'Temporary Storage Enabled'}
+          >
+            {isPermanentStorage ? <IoCloudOutline size={20} /> : <IoCloudOfflineOutline size={20} />}
+          </button>
           <button 
             className={`icon-button ${audioCall.callStatus !== 'idle' ? 'active' : ''}`}
             onClick={handleCallClick}
