@@ -12,6 +12,7 @@ const Chat = ({ socket, username, room, onLogout }) => {
   const [privateChat, setPrivateChat] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const [unreadMessages, setUnreadMessages] = useState({});
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -20,6 +21,14 @@ const Chat = ({ socket, username, room, onLogout }) => {
   useEffect(() => {
     socket.on('message', (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
+      
+      if (message.user !== username && 
+          (privateChat?.username !== message.user)) {
+        setUnreadMessages(prev => ({
+          ...prev,
+          [message.user]: (prev[message.user] || 0) + 1
+        }));
+      }
     });
 
     socket.on('messageHistory', (history) => {
@@ -38,13 +47,23 @@ const Chat = ({ socket, username, room, onLogout }) => {
       }
     });
 
+    socket.on('private-message', ({ from, content }) => {
+      if (privateChat?.username !== from) {
+        setUnreadMessages(prev => ({
+          ...prev,
+          [from]: (prev[from] || 0) + 1
+        }));
+      }
+    });
+
     return () => {
       socket.off('message');
       socket.off('messageHistory');
       socket.off('roomUsers');
       socket.off('userTyping');
+      socket.off('private-message');
     };
-  }, [socket]);
+  }, [socket, username, privateChat]);
 
   useEffect(() => {
     scrollToBottom();
@@ -76,7 +95,24 @@ const Chat = ({ socket, username, room, onLogout }) => {
   const handleUserClick = (user) => {
     if (user.username !== username) {
       setPrivateChat(user);
+      setUnreadMessages(prev => ({
+        ...prev,
+        [user.username]: 0
+      }));
     }
+  };
+
+  const handleMainChatFocus = () => {
+    if (privateChat) {
+      const updatedUnread = { ...unreadMessages };
+      users.forEach(user => {
+        if (user.username !== username) {
+          delete updatedUnread[user.username];
+        }
+      });
+      setUnreadMessages(updatedUnread);
+    }
+    setPrivateChat(null);
   };
 
   return (
@@ -107,6 +143,11 @@ const Chat = ({ socket, username, room, onLogout }) => {
                   {user.username === username && (
                     <span className="user-you">(you)</span>
                   )}
+                  {unreadMessages[user.username] > 0 && (
+                    <span className="new-message-badge">
+                      {unreadMessages[user.username]}
+                    </span>
+                  )}
                 </div>
               </li>
             ))}
@@ -120,7 +161,7 @@ const Chat = ({ socket, username, room, onLogout }) => {
             socket={socket}
             username={username}
             otherUser={privateChat}
-            onClose={() => setPrivateChat(null)}
+            onClose={handleMainChatFocus}
           />
         ) : (
           <>
