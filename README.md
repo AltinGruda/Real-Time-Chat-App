@@ -57,24 +57,10 @@ src/
 client/
 ├── src/
 │   ├── components/
-│   │   ├── Chat/
-│   │   │   ├── ChatInput.jsx       # Message input component
-│   │   │   ├── ChatMessages.jsx    # Messages display
-│   │   │   └── ChatRoom.jsx        # Main chat component
-│   │   ├── VideoCall/
-│   │   │   ├── CallControls.jsx    # Call control buttons
-│   │   │   └── VideoChat.jsx       # Video call component
-│   │   └── Common/
-│   │       ├── UserList.jsx        # Online users list
-│   │       └── Header.jsx          # App header
-│   ├── hooks/
-│   │   ├── useSocket.js            # Socket.IO hooks
-│   │   └── useVideoCall.js         # WebRTC hooks
-│   ├── context/
-│   │   ├── SocketContext.jsx       # Socket context
-│   │   └── UserContext.jsx         # User context
-│   ├── utils/
-│   │   └── chatUtils.js            # Utility functions
+│   │   ├── Chat.jsx
+│   │   ├── AudioCall.jsx
+│   │   ├── Login.jsx
+│   │   ├── PrivateChat.jsx
 │   ├── App.jsx                     # Main app component
 │   └── main.jsx                    # Entry point
 ├── public/
