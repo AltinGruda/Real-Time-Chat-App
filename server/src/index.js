@@ -40,9 +40,32 @@ const getPrivateChatId = (user1Id, user2Id) => {
   return [user1Id, user2Id].sort().join(':');
 };
 
+// Helper function to get permanent chat ID based on usernames
+const getPermanentChatId = (username1, username2) => {
+  return ['permanent', username1, username2].sort().slice(1).join(':');
+};
+
 // Socket.io connection handler
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+
+  // Handle storage setting
+  socket.on('set-storage-preference', async ({ isPermanent }) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+
+    // Store the user's preference in Redis
+    await redis.hset('storage_preferences', user.username, isPermanent ? '1' : '0');
+  });
+
+  socket.on('get-storage-preference', async () => {
+    const user = users.get(socket.id);
+    if (!user) return;
+
+    // Get the user's preference from Redis
+    const preference = await redis.hget('storage_preferences', user.username);
+    socket.emit('storage-preference', { isPermanent: preference === '1' });
+  });
 
   // Handle user joining
   socket.on('join', async ({ username, room }) => {
@@ -162,20 +185,38 @@ io.on('connection', (socket) => {
     const sender = users.get(socket.id);
     if (!sender) return;
 
+    const receiver = users.get(to);
+    if (!receiver) return;
+
     const messageData = {
       from: sender.username,
-      to: users.get(to)?.username,
+      to: receiver.username,
       content,
       timestamp: new Date(),
     };
 
-    // Store message in Redis
-    const chatId = getPrivateChatId(socket.id, to);
-    await redis.lpush(
-      `private:${chatId}`,
-      JSON.stringify(messageData)
-    );
-    await redis.ltrim(`private:${chatId}`, 0, 99); // Keep last 100 messages
+    // Get sender's storage preference
+    const senderPreference = await redis.hget('storage_preferences', sender.username);
+    const isPermanent = senderPreference === '1';
+
+    // Store message in Redis based on preference
+    if (isPermanent) {
+      // Use permanent storage with usernames
+      const permanentChatId = getPermanentChatId(sender.username, receiver.username);
+      await redis.lpush(
+        `permanent_chat:${permanentChatId}`,
+        JSON.stringify(messageData)
+      );
+      await redis.ltrim(`permanent_chat:${permanentChatId}`, 0, 99);
+    } else {
+      // Use temporary storage with socket IDs
+      const tempChatId = getPrivateChatId(socket.id, to);
+      await redis.lpush(
+        `temp_chat:${tempChatId}`,
+        JSON.stringify(messageData)
+      );
+      await redis.ltrim(`temp_chat:${tempChatId}`, 0, 99);
+    }
 
     // Send to both users
     io.to(to).emit('private-message', messageData);
@@ -187,10 +228,25 @@ io.on('connection', (socket) => {
     const user = users.get(socket.id);
     if (!user) return;
 
-    const chatId = getPrivateChatId(socket.id, otherUserId);
-    const messages = await redis.lrange(`private:${chatId}`, 0, 49);
+    const otherUser = users.get(otherUserId);
+    if (!otherUser) return;
+
+    // Get user's storage preference
+    const preference = await redis.hget('storage_preferences', user.username);
+    const isPermanent = preference === '1';
+
+    let messages = [];
+    if (isPermanent) {
+      // Get permanent chat history
+      const permanentChatId = getPermanentChatId(user.username, otherUser.username);
+      messages = await redis.lrange(`permanent_chat:${permanentChatId}`, 0, 49);
+    } else {
+      // Get temporary chat history
+      const tempChatId = getPrivateChatId(socket.id, otherUserId);
+      messages = await redis.lrange(`temp_chat:${tempChatId}`, 0, 49);
+    }
+
     const parsedMessages = messages.map(msg => JSON.parse(msg));
-    
     socket.emit('private-message-history', parsedMessages.reverse());
   });
 
