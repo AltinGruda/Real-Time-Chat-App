@@ -21,9 +21,8 @@ const Chat = ({ socket, username, room, onLogout }) => {
   useEffect(() => {
     socket.on('message', (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
-      
-      if (message.user !== username && 
-          (privateChat?.username !== message.user)) {
+      if (message.user !== username && message.private &&
+        (privateChat?.username !== message.user)) {
         setUnreadMessages(prev => ({
           ...prev,
           [message.user]: (prev[message.user] || 0) + 1
@@ -80,13 +79,13 @@ const Chat = ({ socket, username, room, onLogout }) => {
 
   const handleTyping = (e) => {
     setMessage(e.target.value);
-    
+
     socket.emit('typing', true);
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit('typing', false);
     }, 1000);
@@ -122,12 +121,12 @@ const Chat = ({ socket, username, room, onLogout }) => {
           <h2>{room}</h2>
           <p>{users.length} members</p>
         </div>
-        
+
         <div className="user-list">
           <h3>Members</h3>
           <ul>
             {users.map((user) => (
-              <li 
+              <li
                 key={user.id}
                 onClick={() => handleUserClick(user)}
                 className={user.username !== username ? 'clickable' : ''}
