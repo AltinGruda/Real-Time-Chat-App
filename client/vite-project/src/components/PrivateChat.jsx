@@ -24,25 +24,20 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
   };
 
   useEffect(() => {
-    // Get storage preference when component mounts
     socket.emit('get-storage-preference');
 
-    // Listen for storage preference
     socket.on('storage-preference', ({ isPermanent }) => {
       setIsPermanentStorage(isPermanent);
     });
 
-    // Listen for private messages
     socket.on('private-message', (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    // Listen for private message history
     socket.on('private-message-history', (history) => {
       setMessages(history);
     });
 
-    // Listen for typing status
     socket.on('private-typing', ({ username: typingUser, isTyping }) => {
       if (isTyping && typingUser === otherUser.username) {
         setTyping(`${typingUser} is typing...`);
@@ -51,7 +46,6 @@ const PrivateChat = ({ socket, username, otherUser, onClose }) => {
       }
     });
 
-    // Request message history
     socket.emit('get-private-history', { otherUserId: otherUser.id });
 
     return () => {

@@ -2,14 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import Peer from 'simple-peer/simplepeer.min.js';
 
 const AudioCall = ({ socket, username, users, onEndCall }) => {
-  const [callStatus, setCallStatus] = useState('idle'); // idle, calling, ongoing, receiving
+  const [callStatus, setCallStatus] = useState('idle');
   const [callerInfo, setCallerInfo] = useState(null);
   const [error, setError] = useState(null);
   const myStream = useRef();
   const peerConnection = useRef();
   const remoteAudioRef = useRef();
 
-  // Reset state when socket changes
   useEffect(() => {
     cleanup();
     setCallStatus('idle');
